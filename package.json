@@ -1,0 +1,12 @@
+{
+  "name": "com.darknaku.core",
+  "displayName": "DarkNaku Core Package",
+  "version": "0.0.1",
+  "unity" : "2019.1",
+  "author" : "DarkNaku",
+  "description" : "DarkNaku Library Base Package",
+  "dependencies": {
+  },
+  "repository": {
+  }
+}
