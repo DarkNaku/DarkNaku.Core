@@ -26,6 +26,7 @@ namespace DarkNaku.Core {
 
                     if (_instance == null) {
                         _instance = CreateInstance<T>();
+                        (_instance as SingletonScriptable<T>).OnInstantiate();
 #if UNITY_EDITOR
 						string resourcePath = System.IO.Path.Combine(Application.dataPath, RESOURCES_PATH);
 
@@ -36,8 +37,9 @@ namespace DarkNaku.Core {
 						string fullPath = System.IO.Path.Combine(System.IO.Path.Combine("Assets", RESOURCES_PATH), AssetName + ".asset");
 						AssetDatabase.CreateAsset(_instance, fullPath);
 #endif
-                        (_instance as SingletonScriptable<T>).OnInstantiate();
                     }
+
+                    (_instance as SingletonScriptable<T>).OnLoaded();
                 }
 
                 return _instance;
@@ -45,6 +47,9 @@ namespace DarkNaku.Core {
         }
 
         protected virtual void OnInstantiate() {
+        }
+
+        protected virtual void OnLoaded() {
         }
     }
 }

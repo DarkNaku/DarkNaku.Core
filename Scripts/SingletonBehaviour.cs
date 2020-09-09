@@ -3,7 +3,6 @@
 namespace DarkNaku.Core {
     public abstract class SingletonBehaviour<T> : MonoBehaviour where T : MonoBehaviour {
         private static object _lock = new object();
-        private static bool _instantiated = false;
         private static bool _isDestroyed = false;
 
         private static T _instance = null;
@@ -16,17 +15,10 @@ namespace DarkNaku.Core {
                         _instance = FindObjectOfType<T>();
 
                         if (_instance == null) {
-                            GameObject go = new GameObject();
-                            _instance = go.AddComponent<T>();
-                            go.name = "[SINGLETON] " + typeof(T).ToString();
+                            (new GameObject()).AddComponent<T>();
                         }
-                    }
 
-                    SingletonBehaviour<T> singleton = _instance as SingletonBehaviour<T>;
-
-                    if (_instantiated == false) {
-                        singleton.OnInstantiate();
-                        _instantiated = true;
+                        _instance.name = "[SINGLETON] " + typeof(T).ToString();
                     }
 
                     return _instance;
@@ -38,9 +30,6 @@ namespace DarkNaku.Core {
             OnBeforeDestroy();
             _isDestroyed = true;
             _instance = null;
-        }
-
-        protected virtual void OnInstantiate() { 
         }
 
         protected virtual void OnBeforeDestroy() { 
