@@ -39,20 +39,20 @@ namespace DarkNaku.Core {
         private List<GameObject> _reservedAbandons = new List<GameObject>();
         private bool _isRecycleWorking = false;
 
-        public static void RegisterLabel(string label, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear = false) {
-            Instance._RegisterLabel(label, onProgress, onComplete, isDontReleaseOnClear);
+        public static Coroutine RegisterLabel(string label, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear = false) {
+            return Instance._RegisterLabel(label, onProgress, onComplete, isDontReleaseOnClear);
         }
 
-        public static void RegisterLabels(IList<string> labels, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear) {
-            Instance._RegisterLabels(labels, onProgress, onComplete, isDontReleaseOnClear);
+        public static Coroutine RegisterLabels(IList<string> labels, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear) {
+            return Instance._RegisterLabels(labels, onProgress, onComplete, isDontReleaseOnClear);
         }
 
         public static bool WarmUp(string key, int count) {
             return Instance._WarmUp(key, count);
         }
 
-        public static void WarmUpAsync(string key, int count, System.Action<bool> onComplete) {
-            Instance._WarmUpAsync(key, count, onComplete);
+        public static Coroutine WarmUpAsync(string key, int count, System.Action<bool> onComplete) {
+            return Instance._WarmUpAsync(key, count, onComplete);
         }
 
         public static T GetItem<T>(string key, Transform parent) where T : Component {
@@ -67,16 +67,16 @@ namespace DarkNaku.Core {
             Instance._Abandon(item);
         }
 
-        public static void Abandon(GameObject item, float delay) {
-            Instance._Abandon(item, delay);
+        public static Coroutine Abandon(GameObject item, float delay, System.Action<bool> onComplete = null) {
+            return Instance._Abandon(item, delay, onComplete);
         }
 
-        private void _RegisterLabel(string label, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear) {
-            StartCoroutine(CoRegisterLabels(new List<string>(){ label }, onProgress, onComplete, isDontReleaseOnClear));
+        private Coroutine _RegisterLabel(string label, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear) {
+            return StartCoroutine(CoRegisterLabels(new List<string>(){ label }, onProgress, onComplete, isDontReleaseOnClear));
         }
 
-        private void _RegisterLabels(IList<string> labels, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear) {
-            StartCoroutine(CoRegisterLabels(labels, onProgress, onComplete, isDontReleaseOnClear));
+        private Coroutine _RegisterLabels(IList<string> labels, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear) {
+            return StartCoroutine(CoRegisterLabels(labels, onProgress, onComplete, isDontReleaseOnClear));
         }
 
         private IEnumerator CoRegisterLabels(IList<string> labels, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear) {
@@ -181,8 +181,8 @@ namespace DarkNaku.Core {
             return true;
         }
 
-        private void _WarmUpAsync(string key, int count, System.Action<bool> onComplete) {
-            StartCoroutine(CoWarmUp(key, count, onComplete));
+        private Coroutine _WarmUpAsync(string key, int count, System.Action<bool> onComplete) {
+            return StartCoroutine(CoWarmUp(key, count, onComplete));
         }
 
         private IEnumerator CoWarmUp(string key, int count, System.Action<bool> onComplete) {
@@ -298,11 +298,11 @@ namespace DarkNaku.Core {
             return item;
         }
 
-        private void _Abandon(GameObject item, float delay) {
-            StartCoroutine(CoAbandon(item, delay));
+        private Coroutine _Abandon(GameObject item, float delay, System.Action<bool> onComplete) {
+            return StartCoroutine(CoAbandon(item, delay, onComplete));
         }
 
-        private IEnumerator CoAbandon(GameObject item, float delay) {
+        private IEnumerator CoAbandon(GameObject item, float delay, System.Action<bool> onComplete) {
             if (_reservedAbandons.Contains(item)) yield break;
 
             _reservedAbandons.Add(item);
@@ -317,6 +317,9 @@ namespace DarkNaku.Core {
             if (_reservedAbandons.Contains(item)) {
                 _Abandon(item);
                 _reservedAbandons.Remove(item);
+                onComplete?.Invoke(true);
+            } else {
+                onComplete?.Invoke(false);
             }
         }
 
@@ -391,6 +394,5 @@ namespace DarkNaku.Core {
                 _labelHandles.Remove(key);
             }
         }
-
     }
 }
