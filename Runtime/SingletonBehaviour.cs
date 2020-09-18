@@ -15,10 +15,11 @@ namespace DarkNaku.Core {
                         _instance = FindObjectOfType<T>();
 
                         if (_instance == null) {
-                            (new GameObject()).AddComponent<T>();
+                            _instance = (new GameObject()).AddComponent<T>();
                         }
 
                         _instance.name = "[SINGLETON] " + typeof(T).ToString();
+                        (_instance as SingletonBehaviour<T>).OnInstantiate();
                     }
 
                     return _instance;
@@ -30,6 +31,9 @@ namespace DarkNaku.Core {
             OnBeforeDestroy();
             _isDestroyed = true;
             _instance = null;
+        }
+
+        protected virtual void OnInstantiate() {
         }
 
         protected virtual void OnBeforeDestroy() { 

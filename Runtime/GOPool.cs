@@ -43,7 +43,7 @@ namespace DarkNaku.Core {
             return Instance._RegisterLabel(label, onProgress, onComplete, isDontReleaseOnClear);
         }
 
-        public static Coroutine RegisterLabels(IList<string> labels, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear) {
+        public static Coroutine RegisterLabels(IList<string> labels, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear = false) {
             return Instance._RegisterLabels(labels, onProgress, onComplete, isDontReleaseOnClear);
         }
 
