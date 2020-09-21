@@ -12,7 +12,7 @@ namespace DarkNaku.Core {
         void OnAbandon();
     }
 
-    public class GOPool : SingletonBehaviour<GOPool> {
+    public sealed class GOPool : SingletonBehaviour<GOPool> {
         private struct LabelHandleData {
             public AsyncOperationHandle Handle { get; private set; }
             public bool IsDontReleaseOnClear { get; private set; }
@@ -69,6 +69,10 @@ namespace DarkNaku.Core {
 
         public static Coroutine Abandon(GameObject item, float delay, System.Action<bool> onComplete = null) {
             return Instance._Abandon(item, delay, onComplete);
+        }
+
+        protected override void OnInstantiate() {
+            DontDestroyOnLoad(gameObject);
         }
 
         private Coroutine _RegisterLabel(string label, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear) {
