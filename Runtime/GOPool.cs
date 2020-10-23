@@ -212,7 +212,7 @@ namespace DarkNaku.Core {
         }
 
         private T _GetItem<T>(string key, Transform parent) where T : Component {
-            var item = _GetItem(key, transform);
+            var item = _GetItem(key, parent);
 
             if (item == null) {
                 return null;
