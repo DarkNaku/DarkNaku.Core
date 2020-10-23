@@ -53,11 +53,11 @@ public abstract class FSMBehaviour<S, M> : MonoBehaviour
             return;
         }
 
-        if (_initialized) {
-            _state = state;
-        } else {
-            _initialized = true;
-        }
+        if (_initialized) return;
+
+        _state = state;
+        _initialized = true;
+        OnInitialized();
     }
 
     protected void FixedUpdate() {
@@ -84,6 +84,7 @@ public abstract class FSMBehaviour<S, M> : MonoBehaviour
         OnLateUpdate();
     }
 
+    protected virtual void OnInitialized() { }
     protected virtual void OnFixedUpdate() { }
     protected virtual void OnUpdate() { }
     protected virtual void OnLateUpdate() { }
