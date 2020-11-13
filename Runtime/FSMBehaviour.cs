@@ -47,6 +47,18 @@ public abstract class FSMBehaviour<S, M> : MonoBehaviour
 
     private bool _initialized = false;
 
+    public void TriggerEvent<T>(T t) {
+        _states[_state].OnTriggerEvent(t);
+    }
+
+    public void TriggerEvent<T1, T2>(T1 t1, T2 t2) {
+        _states[_state].OnTriggerEvent(t1, t2);
+    }
+
+    public void TriggerEvent<T1, T2, T3>(T1 t1, T2 t2, T3 t3) {
+        _states[_state].OnTriggerEvent(t1, t2, t3);
+    }
+
     protected void Initialize(S state) {
         if (_states.ContainsKey(state) == false) {
             Debug.LogFormat("[{0}] Initialize : {1} is not on the list of states.", typeof(M).ToString(), state.ToString());
