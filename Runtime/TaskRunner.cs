@@ -1,29 +1,31 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using DarkNaku.Core;
+using UnityEngine.Events;
 
 namespace DarkNaku.Core {
     public class TaskRunner : SingletonBehaviour<TaskRunner> {
-        public static Task Run(IEnumerator coroutine, System.Action<bool> onComplete = null) {
-            return new Task(coroutine, onComplete);
+        public static Task Run(IEnumerator coroutine) {
+            return new Task(coroutine);
         }
 
         public class Task : CustomYieldInstruction {
+            public class CompleteEvent : UnityEvent<bool> { }
+
             public override bool keepWaiting => !Completed;
 
             public bool Running { get; private set; }
             public bool Paused { get; private set; }
             public bool Completed { get; private set; }
 
+            private CompleteEvent _onComplete = new CompleteEvent();
+            public CompleteEvent OnComplete => _onComplete;
+
             private bool _stopped = false;
             private Coroutine _context = null;
             private IEnumerator _coroutine = null;
-            private System.Action<bool> _onComplete = null;
 
-            public Task(IEnumerator coroutine, System.Action<bool> onComplete) {
+            public Task(IEnumerator coroutine) {
                 _coroutine = coroutine;
-                _onComplete = onComplete;
                 Start();
             }
 
