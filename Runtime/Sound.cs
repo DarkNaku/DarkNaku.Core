@@ -195,6 +195,7 @@ namespace DarkNaku.Core {
             player.volume = VolumeSFX;
             player.clip = _clips[clipName].Clip;
             player.name = string.Format("SFX Player - {0}", clipName);
+            player.loop = false;
             player.Play();
 
             _playedClipNamesInThisFrame.Add(clipName);
@@ -226,6 +227,7 @@ namespace DarkNaku.Core {
             player.volume = VolumeBGM;
             player.clip = _clips[clipName].Clip;
             player.name = string.Format("BGM {0} Player - {1}", channal, clipName);
+            player.loop = true;
             player.Play();
 
             _playedClipNamesInThisFrame.Add(clipName);
