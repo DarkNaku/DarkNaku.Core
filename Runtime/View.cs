@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
+
 
 namespace DarkNaku.Core {
     public sealed class View : SingletonBehaviour<View> {
@@ -74,9 +76,12 @@ namespace DarkNaku.Core {
                 var handler = transform.GetChild(i).GetComponent<ViewHandler>();
 
                 if (handler != null) {
+                    handler.gameObject.SetActive(false);
                     _viewTable.Add(handler.name, handler);
                 }
             }
+
+            this.name = "View";
 
             _initialized = true;
         }
@@ -162,17 +167,18 @@ namespace DarkNaku.Core {
                 yield break;
             }
 
-            popup.ViewCanvas.worldCamera = MainView.ViewCamera;
+            var popupData = popup.ViewCamera.GetComponent<UniversalAdditionalCameraData>();
+            popupData.renderType = CameraRenderType.Overlay;
             popup.gameObject.SetActive(true);
-            popup.ViewCanvas.sortingLayerName = "Popup";
+
+            var mainData = MainView.ViewCamera.GetComponent<UniversalAdditionalCameraData>();
+            mainData.cameraStack.Add(popup.ViewCamera);
 
             if (_popups.Count > 0) {
                 var lastPopup = _popups.Peek();
                 lastPopup.ViewCanvasGroup.interactable = false;
-                popup.ViewCanvas.sortingOrder = lastPopup.ViewCanvas.sortingOrder + 1;
             } else {
                 MainView.ViewCanvasGroup.interactable = false;
-                popup.ViewCanvas.sortingOrder = 0;
             }
 
             _popups.Push(popup);
@@ -217,6 +223,9 @@ namespace DarkNaku.Core {
             popup.gameObject.SetActive(false);
 
             _popups.Pop();
+
+            var mainData = MainView.ViewCamera.GetComponent<UniversalAdditionalCameraData>();
+            mainData.cameraStack.Remove(popup.ViewCamera);
 
             if (_popups.Count > 0) {
                 _popups.Peek().ViewCanvasGroup.interactable = true;

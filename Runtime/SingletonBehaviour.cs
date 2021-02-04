@@ -16,9 +16,9 @@ namespace DarkNaku.Core {
 
                         if (_instance == null) {
                             _instance = (new GameObject()).AddComponent<T>();
+                            _instance.name = "[SINGLETON] " + typeof(T).ToString();
                         }
 
-                        _instance.name = "[SINGLETON] " + typeof(T).ToString();
                         (_instance as SingletonBehaviour<T>).OnInstantiate();
                     }
 

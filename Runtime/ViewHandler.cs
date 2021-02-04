@@ -11,10 +11,18 @@ namespace DarkNaku.Core {
         [SerializeField] private Canvas _viewCanvas = null;
         public Canvas ViewCanvas { get { return _viewCanvas; } }
 
-        [SerializeField] private CanvasGroup _viewCanvasGroup = null;
-        public CanvasGroup ViewCanvasGroup { get { return _viewCanvasGroup; } }
+        private CanvasGroup _viewCanvasGroup = null;
+        public CanvasGroup ViewCanvasGroup { 
+            get { 
+                if (_viewCanvasGroup == null) {
+                    _viewCanvasGroup = _viewCanvas.GetComponent<CanvasGroup>();
+                }
 
-        [SerializeField] private IViewTransition _viewTransition = null;
+                return _viewCanvasGroup; 
+            } 
+        }
+
+        private IViewTransition _viewTransition = null;
         protected IViewTransition ViewTransition {
             get {
                 if (_viewTransition == null) {
