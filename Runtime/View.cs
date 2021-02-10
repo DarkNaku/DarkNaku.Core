@@ -207,22 +207,16 @@ namespace DarkNaku.Core {
                 yield break;
             }
 
-            if (lastItem.IsInTransition) {
-                Debug.LogWarningFormat("[View] CoHidePopup : '{0}' in the popup list hasn't finished transition.", lastItem.name);
-
-                while (lastItem.IsInTransition) {
-                    yield return null;
-                    lastItem = _popups.Peek();
-                }
+            while (lastItem.IsInTransition) {
+                yield return null;
+                lastItem = _popups.Peek();
             }
 
-            var popup = _popups.Peek();
+            var popup = _popups.Pop();
 
             yield return popup.Hide(result);
 
             popup.gameObject.SetActive(false);
-
-            _popups.Pop();
 
             var mainData = MainView.ViewCamera.GetComponent<UniversalAdditionalCameraData>();
             mainData.cameraStack.Remove(popup.ViewCamera);
