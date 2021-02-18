@@ -181,10 +181,12 @@ namespace DarkNaku.Core {
         private void _PlaySFX(string clipName) {
             if (EnabledSFX == false) return;
 
+            /*
             if (_clips.ContainsKey(clipName) == false) {
                 Debug.LogErrorFormat("[Sound] PlaySFX : Not on clip table - {0}", clipName);
                 return;
             }
+            */
 
             if (_playedClipNamesInThisFrame.Contains(clipName)) {
                 Debug.LogWarningFormat("[Sound] PlaySFX : Defend to play the same frame - {0}", clipName);
@@ -193,7 +195,7 @@ namespace DarkNaku.Core {
 
             var player = GetPlayer();
             player.volume = VolumeSFX;
-            player.clip = _clips[clipName].Clip;
+            player.clip = GetClip(clipName);
             player.name = string.Format("SFX Player - {0}", clipName);
             player.loop = false;
             player.Play();
@@ -205,10 +207,12 @@ namespace DarkNaku.Core {
         private void _PlayBGM(string clipName, int channal) {
             if (EnabledBGM == false) return;
 
+            /*
             if (_clips.ContainsKey(clipName) == false) {
                 Debug.LogErrorFormat("[Sound] PlayBGM : Not on clip table - {0}", clipName);
                 return;
             }
+            */
 
             if (_playedClipNamesInThisFrame.Contains(clipName)) {
                 Debug.LogWarningFormat("[Sound] PlayBGM : Defend to play the same frame - {0}", clipName);
@@ -225,13 +229,28 @@ namespace DarkNaku.Core {
             }
 
             player.volume = VolumeBGM;
-            player.clip = _clips[clipName].Clip;
+            player.clip = GetClip(clipName);
             player.name = string.Format("BGM {0} Player - {1}", channal, clipName);
             player.loop = true;
             player.Play();
 
             _playedClipNamesInThisFrame.Add(clipName);
             StartCoroutine(CoDefendPlayAtTheSameTime());
+        }
+
+        private AudioClip GetClip(string clipName) {
+            if (_clips.ContainsKey(clipName)) {
+                return _clips[clipName].Clip;
+            } else {
+                AudioClip clip = Resources.Load(clipName, typeof(AudioClip)) as AudioClip;
+
+                if (clip == null) {
+                    return null;
+                } else {
+                    _clips.Add(clipName, new ClipData(clip, false));
+                    return clip;
+                }
+            }
         }
 
         private AudioSource GetPlayer() {

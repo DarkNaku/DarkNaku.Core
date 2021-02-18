@@ -229,7 +229,7 @@ namespace DarkNaku.Core {
 
             if (_molds.ContainsKey(key) == false) {
                 Debug.LogErrorFormat("[GOPool] GetItem : Not on mold list - {0}", key);
-                return null;
+                if (CreateMold(key) == false) return null;
             }
 
             if (_pools.ContainsKey(key) == false) {
@@ -271,6 +271,18 @@ namespace DarkNaku.Core {
             }
 
             return item;
+        }
+
+        private bool CreateMold(string path) {
+            GameObject mold = Resources.Load<GameObject>(path);
+
+            if (mold == null) {
+                return false;
+            } else {
+                _molds.Add(path, new MoldData(mold, false));
+                _pools.Add(path, new List<GameObject>());
+                return true;
+            }
         }
 
         private bool IsAvailable(GameObject go) {
