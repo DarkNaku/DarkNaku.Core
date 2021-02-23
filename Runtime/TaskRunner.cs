@@ -4,10 +4,6 @@ using UnityEngine.Events;
 
 namespace DarkNaku.Core {
     public class TaskRunner : SingletonBehaviour<TaskRunner> {
-        public static Task Run(IEnumerator coroutine) {
-            return new Task(coroutine);
-        }
-
         public class Task : CustomYieldInstruction {
             public class CompleteEvent : UnityEvent<bool> { }
 
@@ -89,6 +85,14 @@ namespace DarkNaku.Core {
                 _onComplete?.Invoke(Completed);
                 Running = false;
             }
+        }
+
+        public static Task Run(IEnumerator coroutine) {
+            return new Task(coroutine);
+        }
+
+        protected override void OnInstantiate() {
+            DontDestroyOnLoad(gameObject);
         }
     }
 }
