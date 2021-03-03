@@ -1,8 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.AsyncOperations;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace DarkNaku.Core {
     public interface IGOPoolItem {
@@ -12,47 +14,42 @@ namespace DarkNaku.Core {
         void OnAbandon();
     }
 
-    public sealed class GOPool : SingletonBehaviour<GOPool> {
-        private struct LabelHandleData {
-            public AsyncOperationHandle Handle { get; private set; }
-            public bool IsDontReleaseOnClear { get; private set; }
-            public LabelHandleData(AsyncOperationHandle handle, bool isDontReleaseOnClear) {
-                Handle = handle;
-                IsDontReleaseOnClear = isDontReleaseOnClear;
+    public sealed class GOPool : SingletonScriptable<GOPool> {
+        public class PoolData {
+            private GameObject _mold = null;
+            public GameObject Mold => _mold;
+
+            private List<GameObject> _pool = null;
+            public List<GameObject> Pool => _pool;
+
+            public PoolData(GameObject mold) {
+                _mold = mold;
+                _pool = new List<GameObject>();
             }
         }
 
-        private struct MoldData {
-            public GameObject Mold { get; private set; }
-            public bool IsDontReleaseOnClear { get; private set; }
-            public MoldData (GameObject mold, bool isDontReleaseOnClear) {
-                Mold = mold;
-                IsDontReleaseOnClear = isDontReleaseOnClear;
-            }
-        }
+        [Header("Prefabs Path (Path under Resources)")]
+        [SerializeField] string _prefabPath = "Prefabs";
 
-        private Dictionary<string, LabelHandleData> _labelHandles = new Dictionary<string, LabelHandleData>();
-        private Dictionary<string, MoldData> _molds = new Dictionary<string, MoldData>();
-        private Dictionary<string, List<GameObject>> _pools = new Dictionary<string, List<GameObject>>();
+        private Dictionary<string, PoolData> _pools = new Dictionary<string, PoolData>();
         private Queue<GameObject> _trashs = new Queue<GameObject>();
-        private List<string> _loadings = new List<string>();
         private List<GameObject> _reservedAbandons = new List<GameObject>();
         private bool _isRecycleWorking = false;
+        private Transform _root = null;
 
-        public static Coroutine RegisterLabel(string label, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear = false) {
-            return Instance._RegisterLabel(label, onProgress, onComplete, isDontReleaseOnClear);
+#if UNITY_EDITOR
+        [MenuItem("DarkNaku/GameObject Pool Settings")]
+        public static void Edit() {
+            Selection.activeObject = Instance;
         }
-
-        public static Coroutine RegisterLabels(IList<string> labels, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear = false) {
-            return Instance._RegisterLabels(labels, onProgress, onComplete, isDontReleaseOnClear);
-        }
+#endif
 
         public static bool WarmUp(string key, int count) {
             return Instance._WarmUp(key, count);
         }
 
-        public static Coroutine WarmUpAsync(string key, int count, System.Action<bool> onComplete) {
-            return Instance._WarmUpAsync(key, count, onComplete);
+        public static TaskRunner.Task WarmUpAsync(string key, int count, System.Action<bool> onComplete = null) {
+            return TaskRunner.Run(Instance.CoWarmUp(key, count, onComplete));
         }
 
         public static T GetItem<T>(string key, Transform parent) where T : Component {
@@ -67,144 +64,41 @@ namespace DarkNaku.Core {
             Instance._Abandon(item);
         }
 
-        public static Coroutine Abandon(GameObject item, float delay, System.Action<bool> onComplete = null) {
-            return Instance._Abandon(item, delay, onComplete);
+        public static TaskRunner.Task Abandon(GameObject item, float delay, System.Action<bool> onComplete = null) {
+            return TaskRunner.Run(Instance.CoAbandon(item, delay, onComplete));
         }
 
-        protected override void OnInstantiate() {
-            DontDestroyOnLoad(gameObject);
+        protected override void OnLoad() {
+            _root = new GameObject("GOPool").transform;
+            DontDestroyOnLoad(_root.gameObject);
         }
-
-        private Coroutine _RegisterLabel(string label, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear) {
-            return StartCoroutine(CoRegisterLabels(new List<string>(){ label }, onProgress, onComplete, isDontReleaseOnClear));
-        }
-
-        private Coroutine _RegisterLabels(IList<string> labels, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear) {
-            return StartCoroutine(CoRegisterLabels(labels, onProgress, onComplete, isDontReleaseOnClear));
-        }
-
-        private IEnumerator CoRegisterLabels(IList<string> labels, System.Action<float> onProgress, System.Action onComplete, bool isDontReleaseOnClear) {
-            Debug.Assert(labels != null, "[GOPool] CoRegisterLables : List is null.");
-
-            if (labels == null) {
-                onComplete();
-                yield break;
-            }
-
-#if UNITY_EDITOR
-            if (ConfirmLabels(labels) == false) {
-                onComplete();
-                yield break;
-            }
-#endif
-
-            var percentPerLabel = 1f / labels.Count;
-
-            for (int i = 0; i < labels.Count; i++) {
-                if (_labelHandles.ContainsKey(labels[i])) {
-                    Debug.AssertFormat(labels != null, "[GOPool] CoRegisterLables : Label already registed - {0}", labels[i]);
-                    continue;
-                }
-
-                var handle = Addressables.LoadAssetsAsync<GameObject>(labels[i], (go) => {
-                    if (_molds.ContainsKey(go.name)) {
-                        Debug.AssertFormat(labels != null, "[GOPool] CoRegisterLables : Prefab already registed - {0}", go.name);
-                    } else {
-                        _molds.Add(go.name, new MoldData(go, isDontReleaseOnClear));
-                        _pools.Add(go.name, new List<GameObject>());
-                    }
-                }, true);
-
-                if (handle.IsValid() == false) {
-                    Debug.LogFormat("[GOPool] CoRegisterLables : Label load fail - {0}", labels[i]);
-                    continue;
-                }
-
-                var prevPercent = handle.PercentComplete;
-
-                while (handle.PercentComplete < 1F) {
-                    yield return null;
-
-                    if (handle.PercentComplete > prevPercent) {
-                        prevPercent = handle.PercentComplete;
-
-                        if (onProgress != null) {
-                            onProgress((percentPerLabel * i) + (percentPerLabel * handle.PercentComplete));
-                        }
-                    }
-                }
-
-                yield return handle;
-
-                if (handle.Status == AsyncOperationStatus.Succeeded) {
-                    if (onProgress != null) {
-                        onProgress(percentPerLabel * (i + 1));
-                    }
-
-                    _labelHandles.Add(labels[i], new LabelHandleData(handle, isDontReleaseOnClear));
-                }
-            }
-
-            if (onComplete != null) onComplete();
-        }
-
-#if UNITY_EDITOR
-        private bool ConfirmLabels(IList<string> labels) {
-            Debug.Assert(labels != null, "[GOPool] ConfirmLabels : List is null.");
-
-            var comfirmLabels = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings.GetLabels();
-
-            for (int i = 0; i < labels.Count; i++) {
-                if (comfirmLabels.Contains(labels[i]) == false) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-#endif
 
         private bool _WarmUp(string key, int count) {
-            if (_molds.ContainsKey(key) == false) {
-                Debug.AssertFormat(_molds.ContainsKey(key), "[GOPool] WarmUp : Not on mold list - {0}", key);
-                return false;
-            }
-            
             if (_pools.ContainsKey(key) == false) {
-                Debug.LogWarningFormat("[GOPool] WarmUp : Not on pool list - {0}", key);
-                _pools.Add(key, new List<GameObject>());
+                if (CreateMold(key) == false) return false;
             }
 
-            var pool = _pools[key];
+            var data = _pools[key];
 
-            while (pool.Count < count) {
-                var item = CreateItem(key);
-                pool.Add(item);
+            while (data.Pool.Count < count) {
+                CreateItem(data);
             }
 
             return true;
-        }
-
-        private Coroutine _WarmUpAsync(string key, int count, System.Action<bool> onComplete) {
-            return StartCoroutine(CoWarmUp(key, count, onComplete));
         }
 
         private IEnumerator CoWarmUp(string key, int count, System.Action<bool> onComplete) {
-            if (_molds.ContainsKey(key) == false) {
-                Debug.AssertFormat(_molds.ContainsKey(key), "[GOPool] WarmUp : Not on mold list - {0}", key);
-                onComplete?.Invoke(false);
-            }
-            
             if (_pools.ContainsKey(key) == false) {
-                Debug.LogWarningFormat("[GOPool] WarmUp : Not on pool list - {0}", key);
-                _pools.Add(key, new List<GameObject>());
+                if (CreateMold(key) == false) {
+                    onComplete?.Invoke(false);
+                    yield break;
+                }
             }
 
-            var pool = _pools[key];
+            var data = _pools[key];
 
-            while (pool.Count < count) {
-                var item = CreateItem(key);
-                pool.Add(item);
+            while (data.Pool.Count < count) {
+                CreateItem(data);
                 yield return null;
             }
 
@@ -227,18 +121,12 @@ namespace DarkNaku.Core {
                 return null;
             }
 
-            if (_molds.ContainsKey(key) == false) {
-                Debug.LogErrorFormat("[GOPool] GetItem : Not on mold list - {0}", key);
+            if (_pools.ContainsKey(key) == false) {
                 if (CreateMold(key) == false) return null;
             }
 
-            if (_pools.ContainsKey(key) == false) {
-                Debug.LogWarningFormat("[GOPool] GetItem : Not on pool list - {0}", key);
-                _pools.Add(key, new List<GameObject>());
-            }
-
             GameObject item = null;
-            List<GameObject> pool = _pools[key];
+            var pool = _pools[key].Pool;
 
             for (int i = 0; i < pool.Count; i++) {
                 if (IsAvailable(pool[i])) {
@@ -248,12 +136,11 @@ namespace DarkNaku.Core {
             }
 
             if (item == null) {
-                item = CreateItem(key);
-                pool.Add(item);
+                item = CreateItem(_pools[key]);
             }
 
             if (parent == null) {
-                item.transform.SetParent(transform);
+                item.transform.SetParent(_root);
             } else {
                 item.transform.SetParent(parent);
             }
@@ -273,16 +160,30 @@ namespace DarkNaku.Core {
             return item;
         }
 
-        private bool CreateMold(string path) {
-            GameObject mold = Resources.Load<GameObject>(path);
+        private bool CreateMold(string key) {
+            GameObject mold = Resources.Load<GameObject>(_prefabPath + "/" + key);
 
             if (mold == null) {
                 return false;
             } else {
-                _molds.Add(path, new MoldData(mold, false));
-                _pools.Add(path, new List<GameObject>());
+                _pools.Add(key, new PoolData(mold));
                 return true;
             }
+        }
+
+        private GameObject CreateItem(PoolData data) { 
+            var item = Instantiate(data.Mold) as GameObject;
+            item.name = item.name.Replace("(Clone)", "");
+
+            var pi = item.GetComponent(typeof(IGOPoolItem)) as IGOPoolItem;
+
+            if (pi != null) {
+                pi.OnInstantiate();
+            }
+
+            data.Pool.Add(item);
+
+            return item;
         }
 
         private bool IsAvailable(GameObject go) {
@@ -298,24 +199,6 @@ namespace DarkNaku.Core {
             } else {
                 return item.IsAvailable;
             }
-        }
-
-        private GameObject CreateItem(string key) { 
-            if (_molds.ContainsKey(key) == false) {
-                Debug.LogErrorFormat("[GOPool] CreateItem : Not on mold list - {0}", key);
-                return null;
-            }
-
-            var item = Instantiate(_molds[key].Mold) as GameObject;
-            item.name = item.name.Replace("(Clone)", "");
-            var pi = item.GetComponent(typeof(IGOPoolItem)) as IGOPoolItem;
-            if (pi != null) pi.OnInstantiate();
-
-            return item;
-        }
-
-        private Coroutine _Abandon(GameObject item, float delay, System.Action<bool> onComplete) {
-            return StartCoroutine(CoAbandon(item, delay, onComplete));
         }
 
         private IEnumerator CoAbandon(GameObject item, float delay, System.Action<bool> onComplete) {
@@ -345,19 +228,25 @@ namespace DarkNaku.Core {
             if (item == null) return;
             if (_trashs.Contains(item)) return;
 
-            item.SetActive(false);
             _trashs.Enqueue(item);
 
             var pi = item.GetComponent(typeof(IGOPoolItem)) as IGOPoolItem;
-            if (pi != null) pi.OnAbandon();
+
+            if (pi == null) {
+                item.SetActive(false);
+            } else {
+                pi.OnAbandon();
+            }
 
             if (_isRecycleWorking) return;
 
-            StartCoroutine(CoRecycle(item));
+            TaskRunner.Run(CoRecycle(item));
         }
 
         private IEnumerator CoRecycle(GameObject item) {
             Debug.Assert(_isRecycleWorking == false, "[GOPool] CoRecycle : Recycler already working.");
+
+            if (_isRecycleWorking) yield break;
 
             _isRecycleWorking = true;
 
@@ -365,50 +254,22 @@ namespace DarkNaku.Core {
 
             while (_trashs.Count > 0) {
                 GameObject trash = _trashs.Dequeue();
-                trash.transform.SetParent(transform);
+                trash.transform.SetParent(_root);
             }
 
             _isRecycleWorking = false;
         }
 
-        private void _Clear(bool isForce) {
-            var clearedKeys = new List<string>();
-
-            foreach (string key in _molds.Keys) {
-                var data = _molds[key];
-
-                if ((isForce == false) && data.IsDontReleaseOnClear) continue;
-
-                var pool = _pools[key];
-
-                while (pool.Count > 0) {
-                    Destroy(pool[0]);
-                    pool.RemoveAt(0);
+        private void _Clear() {
+            foreach (var data in _pools.Values) {
+                while (data.Pool.Count > 0) {
+                    var item = data.Pool[0];
+                    Destroy(item);
+                    data.Pool.Remove(item);
                 }
-
-                _pools.Remove(key);
-                Addressables.Release(data.Mold);
-                clearedKeys.Add(key);
             }
 
-            foreach (string key in clearedKeys) {
-                _molds.Remove(key);
-            }
-
-            var clearedLabels = new List<string>();
-
-            foreach (string label in _labelHandles.Keys) {
-                var data = _labelHandles[label];
-
-                if ((isForce == false) && data.IsDontReleaseOnClear) continue;
-
-                Addressables.Release(data.Handle);
-                clearedLabels.Add(label);
-            }
-
-            foreach (string key in clearedKeys) {
-                _labelHandles.Remove(key);
-            }
+            _pools.Clear();
         }
     }
 }
