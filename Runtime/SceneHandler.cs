@@ -1,31 +1,33 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using DarkNaku.Core;
 
-public abstract class SceneHandler : MonoBehaviour {
-    public virtual IEnumerator CoInAnimation() {
-        yield break;
-    }
+namespace DarkNaku.Core {
+    public abstract class SceneHandler : MonoBehaviour {
+        public IEnumerator CoInitialize(object param) {
+            yield return CoOnInitialize(param);
+        }
 
-    public virtual IEnumerator CoOutAnimation() {
-        yield break;
-    }
+        public IEnumerator CoUninitialize() {
+            yield return CoOnUninitialize();
+        }
 
-    public IEnumerator CoInitialize(object param) {
-        yield return CoOnInitialize(param);
-    }
+        protected virtual IEnumerator CoOnInitialize(object param) {
+            yield break;
+        }
 
-    public IEnumerator CoUninitialize() {
-        yield return CoOnUninitialize();
-        GOPool.Clear();
-    }
+        protected virtual IEnumerator CoOnUninitialize() {
+            yield break;
+        }
 
-    protected virtual IEnumerator CoOnInitialize(object param) {
-        yield break;
-    }
+        public virtual IEnumerator CoInAnimation() {
+            yield break;
+        }
 
-    protected virtual IEnumerator CoOnUninitialize() {
-        yield break;
+        public virtual IEnumerator CoOutAnimation() {
+            yield break;
+        }
+
+        public virtual void OnProgress(float progress) {
+        }
     }
 }
