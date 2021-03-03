@@ -16,7 +16,6 @@ namespace DarkNaku.Core {
             private CompleteEvent _onComplete = new CompleteEvent();
             public CompleteEvent OnComplete => _onComplete;
 
-            private bool _stopped = false;
             private Coroutine _context = null;
             private IEnumerator _coroutine = null;
 
@@ -34,9 +33,6 @@ namespace DarkNaku.Core {
             }
 
             public void Stop() {
-                Running = false;
-                _stopped = true;
-
                 if (Running) {
                     Running = false;
                 } else {
@@ -82,8 +78,8 @@ namespace DarkNaku.Core {
                     }
                 }
 
-                _onComplete?.Invoke(Completed);
                 Running = false;
+                _onComplete?.Invoke(Completed);
             }
         }
 
