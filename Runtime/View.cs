@@ -126,7 +126,6 @@ namespace DarkNaku.Core {
                 prev.Hide(null);
                 MainView = _viewTable[viewName];
                 MainView.ViewCanvas.sortingOrder = 0;
-                MainView.ViewCanvas.sortingLayerName = "Default";
                 MainView.ViewCanvas.worldCamera = MainView.ViewCamera;
                 MainView.gameObject.SetActive(true);
                 MainView.Show(param, null, null);
@@ -145,7 +144,6 @@ namespace DarkNaku.Core {
 
                 MainView = _viewTable[viewName];
                 MainView.ViewCanvas.sortingOrder = 0;
-                MainView.ViewCanvas.sortingLayerName = "Default";
                 MainView.ViewCanvas.worldCamera = MainView.ViewCamera;
                 MainView.gameObject.SetActive(true);
                 yield return MainView.Show(param, null, null);
