@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Assertions;
+using UnityEngine.Rendering.Universal;
 
 namespace DarkNaku.Core {
     public abstract class ViewHandler : MonoBehaviour {
@@ -10,6 +10,17 @@ namespace DarkNaku.Core {
 
         [SerializeField] private Canvas _viewCanvas = null;
         public Canvas ViewCanvas { get { return _viewCanvas; } }
+
+        [SerializeField] private UniversalAdditionalCameraData _viewCameraData = null;
+        public UniversalAdditionalCameraData ViewCameraData {
+            get {
+                if (_viewCameraData == null) {
+                    _viewCameraData = _viewCamera.GetComponent<UniversalAdditionalCameraData>();
+                }
+
+                return _viewCameraData;
+            }
+        }
 
         private CanvasGroup _viewCanvasGroup = null;
         public CanvasGroup ViewCanvasGroup { 

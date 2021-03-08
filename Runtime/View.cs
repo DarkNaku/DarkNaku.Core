@@ -62,6 +62,10 @@ namespace DarkNaku.Core {
             if (_initialized == false) Initialize();
         }
 
+        protected override void OnBeforeDestroy() {
+            Clear();
+        }
+
         private void Initialize() {
             if (_initialized) {
                 Debug.LogWarning("[View] Initialize : Already initialized.");
@@ -84,6 +88,12 @@ namespace DarkNaku.Core {
             this.name = "View";
 
             _initialized = true;
+        }
+
+        private void Clear() {
+            _popups.Clear();
+            _viewTable.Clear();
+            _initialized = false;
         }
 
         private void Escape() {
@@ -115,6 +125,7 @@ namespace DarkNaku.Core {
                 var prev = MainView;
                 prev.Hide(null);
                 MainView = _viewTable[viewName];
+                MainView.ViewCanvas.sortingOrder = 0;
                 MainView.ViewCanvas.sortingLayerName = "Default";
                 MainView.ViewCanvas.worldCamera = MainView.ViewCamera;
                 MainView.gameObject.SetActive(true);
@@ -133,6 +144,7 @@ namespace DarkNaku.Core {
                 }
 
                 MainView = _viewTable[viewName];
+                MainView.ViewCanvas.sortingOrder = 0;
                 MainView.ViewCanvas.sortingLayerName = "Default";
                 MainView.ViewCanvas.worldCamera = MainView.ViewCamera;
                 MainView.gameObject.SetActive(true);
@@ -157,8 +169,15 @@ namespace DarkNaku.Core {
         }
 
         private IEnumerator CoShowPopup(string viewName, object param, System.Action<object> onWillHide, System.Action<object> onDidHide) {
-            Debug.Assert(MainView != null, "[View] CoShowPopup : MainView is null.");
-            Debug.AssertFormat(_viewTable.ContainsKey(viewName), "[View] CoShowPopup : Not on view table - {0}", viewName);
+            if (MainView == null) {
+                Debug.LogError("[View] CoShowPopup : MainView is null.");
+                yield break;
+            }
+
+            if (_viewTable.ContainsKey(viewName) == false) {
+                Debug.LogErrorFormat("[View] CoShowPopup : Not on view table - {0}", viewName);
+                yield break;
+            }
 
             var popup = _viewTable[viewName];
 
@@ -167,18 +186,18 @@ namespace DarkNaku.Core {
                 yield break;
             }
 
-            var popupData = popup.ViewCamera.GetComponent<UniversalAdditionalCameraData>();
-            popupData.renderType = CameraRenderType.Overlay;
+            popup.ViewCameraData.renderType = CameraRenderType.Overlay;
             popup.gameObject.SetActive(true);
 
-            var mainData = MainView.ViewCamera.GetComponent<UniversalAdditionalCameraData>();
-            mainData.cameraStack.Add(popup.ViewCamera);
+            MainView.ViewCameraData.cameraStack.Add(popup.ViewCamera);
 
             if (_popups.Count > 0) {
-                var lastPopup = _popups.Peek();
-                lastPopup.ViewCanvasGroup.interactable = false;
+                var currentPopup = _popups.Peek();
+                currentPopup.ViewCanvasGroup.interactable = false;
+                popup.ViewCanvas.sortingOrder = currentPopup.ViewCanvas.sortingOrder + 1;
             } else {
                 MainView.ViewCanvasGroup.interactable = false;
+                popup.ViewCanvas.sortingOrder = MainView.ViewCanvas.sortingOrder + 1;
             }
 
             _popups.Push(popup);
@@ -200,26 +219,22 @@ namespace DarkNaku.Core {
                 yield break;
             }
 
-            var lastItem = _popups.Peek();
-
-            if (target != lastItem) {
-                Debug.LogErrorFormat("[View] CoHidePopup : Target is not equal to last item of popup list. (Target is {0} and Last item is {1})", target.name, lastItem.name);
+            if (_popups.Count <= 0) {
+                Debug.LogError("[View] CoHidePopup : Popup is not exist.");
                 yield break;
             }
 
-            while (lastItem.IsInTransition) {
-                yield return null;
-                lastItem = _popups.Peek();
+            if (target != _popups.Peek()) {
+                Debug.LogErrorFormat("[View] CoHidePopup : Target is not equal to last item of popup list. (Target is {0} and Last item is {1})", target.name, _popups.Peek().name);
+                yield break;
             }
 
-            var popup = _popups.Pop();
+            var currentPopup = _popups.Pop();
 
-            yield return popup.Hide(result);
+            yield return currentPopup.Hide(result);
 
-            popup.gameObject.SetActive(false);
-
-            var mainData = MainView.ViewCamera.GetComponent<UniversalAdditionalCameraData>();
-            mainData.cameraStack.Remove(popup.ViewCamera);
+            MainView.ViewCameraData.cameraStack.Remove(currentPopup.ViewCamera);
+            currentPopup.gameObject.SetActive(false);
 
             if (_popups.Count > 0) {
                 _popups.Peek().ViewCanvasGroup.interactable = true;
