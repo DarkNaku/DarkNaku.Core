@@ -1,7 +1,6 @@
 {
     "name": "DarkNaku.Core",
     "references": [
-        "GUID:84651a3751eca9349aac36a66bba901b",
         "GUID:15fc0a57446b3144c949da3e2b9737a9"
     ],
     "includePlatforms": [],
