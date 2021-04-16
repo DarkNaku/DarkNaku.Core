@@ -1,9 +1,7 @@
 {
     "name": "DarkNaku.Core",
     "references": [
-        "GUID:9e24947de15b9834991c9d8411ea37cf",
         "GUID:84651a3751eca9349aac36a66bba901b",
-        "GUID:69448af7b92c7f342b298e06a37122aa",
         "GUID:15fc0a57446b3144c949da3e2b9737a9"
     ],
     "includePlatforms": [],
@@ -13,12 +11,6 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [
-        {
-            "name": "com.unity.addressables",
-            "expression": "1.15.1",
-            "define": "1.15.1"
-        }
-    ],
+    "versionDefines": [],
     "noEngineReferences": false
 }
