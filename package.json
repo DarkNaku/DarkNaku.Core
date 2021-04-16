@@ -1,12 +1,11 @@
 {
   "name": "com.darknaku.core",
   "displayName": "DarkNaku Core",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "unity" : "2018.3",
   "author" : "DarkNaku",
   "description" : "DarkNaku Library Core Package",
   "dependencies": {
-    "com.unity.addressables": "1.15.1"
   },
   "repository": {
     "type": "git",
