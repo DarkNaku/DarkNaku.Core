@@ -19,11 +19,11 @@ namespace DarkNaku.Core {
             yield break;
         }
 
-        public virtual IEnumerator CoInAnimation() {
+        public virtual IEnumerator CoInAnimation(string prevScene) {
             yield break;
         }
 
-        public virtual IEnumerator CoOutAnimation() {
+        public virtual IEnumerator CoOutAnimation(string nextScene) {
             yield break;
         }
 

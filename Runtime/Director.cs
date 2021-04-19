@@ -37,6 +37,7 @@ namespace DarkNaku.Core {
             var currentScene = SceneManager.GetActiveScene();
             var currentSceneHandler = FindHandler<SceneHandler>(currentScene);
             var eventSystem = GetEventSystemInScene(currentScene);
+            var prevSceneName = (currentScene == null) ? null : currentScene.name;
 
             if (eventSystem != null) eventSystem.enabled = false;
 
@@ -48,7 +49,7 @@ namespace DarkNaku.Core {
                 ao.allowSceneActivation = false;
             }
 
-            yield return currentSceneHandler?.CoOutAnimation();
+            yield return currentSceneHandler?.CoOutAnimation(sceneName);
             yield return currentSceneHandler?.CoUninitialize();
 
             if (loadingScene != null) {
@@ -60,7 +61,7 @@ namespace DarkNaku.Core {
                 while (loadingScene.isLoaded == false) yield return null;
 
                 loadingHandler = FindHandler<SceneHandler>(loadingScene);
-                yield return loadingHandler?.CoInAnimation();
+                yield return loadingHandler?.CoInAnimation(prevSceneName);
             }
 
             ao = SceneManager.LoadSceneAsync(sceneName);
@@ -73,7 +74,7 @@ namespace DarkNaku.Core {
 
             loadingHandler?.OnProgress(1f);
 
-            yield return loadingHandler?.CoOutAnimation();
+            yield return loadingHandler?.CoOutAnimation(sceneName);
 
             ao.allowSceneActivation = true;
 
@@ -84,7 +85,7 @@ namespace DarkNaku.Core {
             currentSceneHandler = FindHandler<SceneHandler>(currentScene);
 
             yield return currentSceneHandler?.CoInitialize(param);
-            yield return currentSceneHandler?.CoInAnimation();
+            yield return currentSceneHandler?.CoInAnimation(prevSceneName);
 
             eventSystem = GetEventSystemInScene(currentScene);
             if (eventSystem != null) eventSystem.enabled = true;

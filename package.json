@@ -1,7 +1,7 @@
 {
   "name": "com.darknaku.core",
   "displayName": "DarkNaku Core",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "unity" : "2018.3",
   "author" : "DarkNaku",
   "description" : "DarkNaku Library Core Package",
