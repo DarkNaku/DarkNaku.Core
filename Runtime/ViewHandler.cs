@@ -11,7 +11,7 @@ namespace DarkNaku.Core {
         [SerializeField] private Canvas _viewCanvas = null;
         public Canvas ViewCanvas { get { return _viewCanvas; } }
 
-        [SerializeField] private UniversalAdditionalCameraData _viewCameraData = null;
+        private UniversalAdditionalCameraData _viewCameraData = null;
         public UniversalAdditionalCameraData ViewCameraData {
             get {
                 if (_viewCameraData == null) {
