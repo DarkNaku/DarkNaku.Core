@@ -36,6 +36,7 @@ namespace DarkNaku.Core {
                 _loader = loader.GetComponent(typeof(ISceneLoader)) as ISceneLoader;
 
                 if (_loader != null) {
+                    _loader.IsVisible = false;
                     DontDestroyOnLoad(loader);
                 }
             }
@@ -59,6 +60,7 @@ namespace DarkNaku.Core {
             }
 
             if (_loader != null) {
+                _loader.IsVisible = true;
                 yield return _loader.CoInAnimation(prevSceneName);
             }
 
@@ -89,6 +91,7 @@ namespace DarkNaku.Core {
             if (_loader != null) {
                 _loader.OnProgress(1f);
                 yield return _loader.CoOutAnimation(nextSceneName);
+                _loader.IsVisible = false;
             }
 
             nextSceneHandler?.OnEnter(param);
