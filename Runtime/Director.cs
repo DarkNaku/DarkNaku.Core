@@ -10,84 +10,95 @@ using UnityEditor;
 namespace DarkNaku.Core {
     public class Director : SingletonScriptable<Director> {
         [Header("Scene's name for loading.")]
-        [SerializeField] private string _loadingSceneName = "Loading";
+        [SerializeField] private GameObject _loadingPrefab = null;
 
         public static bool NowLoading => Instance._nowLoading;
 
         private bool _nowLoading = false;
+        private ISceneLoader _loader = null;
 
 #if UNITY_EDITOR
         [MenuItem("DarkNaku/Director Settings")]
-        public static void Edit() {
+        public static void SelectDirector() {
             Selection.activeObject = Instance;
         }
 #endif
 
-        public static void Load(string sceneName, object param = null) {
-            TaskRunner.Run(Instance.CoLoad(sceneName, param));
+        public static void Change(string sceneName, object param = null) {
+            TaskRunner.Run(Instance.CoChange(sceneName, param));
         }
 
-        private IEnumerator CoLoad(string sceneName, object param) {
+        protected override void OnLoaded() {
+
+            if (_loadingPrefab != null) {
+                var loader = Instantiate(_loadingPrefab);
+
+                _loader = loader.GetComponent(typeof(ISceneLoader)) as ISceneLoader;
+
+                if (_loader != null) {
+                    DontDestroyOnLoad(loader);
+                }
+            }
+        }
+
+        private IEnumerator CoChange(string nextSceneName, object param) {
             if (_nowLoading) yield break;
 
             _nowLoading = true;
 
-            AsyncOperation ao = null;
-
-            var currentScene = SceneManager.GetActiveScene();
-            var currentSceneHandler = FindHandler<SceneHandler>(currentScene);
-            var eventSystem = GetEventSystemInScene(currentScene);
-            var prevSceneName = (currentScene == null) ? null : currentScene.name;
+            var prevScene = SceneManager.GetActiveScene();
+            var eventSystem = GetEventSystemInScene(prevScene);
+            var prevSceneHandler = FindHandler<ISceneHandler>(prevScene);
+            var prevSceneTransition = FindHandler<ISceneTransition>(prevScene);
+            var prevSceneName = (prevScene == null) ? null : prevScene.name;
 
             if (eventSystem != null) eventSystem.enabled = false;
 
-            SceneHandler loadingHandler = null;
-            var loadingScene = SceneManager.GetSceneByName(_loadingSceneName);
-
-            if (loadingScene != null) {
-                ao = SceneManager.LoadSceneAsync(_loadingSceneName);
-                ao.allowSceneActivation = false;
+            if (prevSceneTransition != null) {
+                yield return prevSceneTransition.CoOutAnimation(nextSceneName);
             }
 
-            yield return currentSceneHandler?.CoOutAnimation(sceneName);
-            yield return currentSceneHandler?.CoUninitialize();
-
-            if (loadingScene != null) {
-                while (ao.progress < 0.9F) yield return null;
-                ao.allowSceneActivation = true;
-
-                loadingScene = SceneManager.GetSceneByName(_loadingSceneName);
-
-                while (loadingScene.isLoaded == false) yield return null;
-
-                loadingHandler = FindHandler<SceneHandler>(loadingScene);
-                yield return loadingHandler?.CoInAnimation(prevSceneName);
+            if (_loader != null) {
+                yield return _loader.CoInAnimation(prevSceneName);
             }
 
-            ao = SceneManager.LoadSceneAsync(sceneName);
-            ao.allowSceneActivation = false;
+            if (prevSceneHandler != null) {
+                yield return prevSceneHandler.CoUninitialize();
+                prevSceneHandler.OnLeave();
+            }
 
-            while (ao.progress < 0.9F) {
-                loadingHandler?.OnProgress(ao.progress);
+            var ao = SceneManager.LoadSceneAsync(nextSceneName);
+
+            while (ao.isDone == false) {
+                _loader?.OnProgress(ao.progress * 0.5f);
                 yield return null;
             }
 
-            loadingHandler?.OnProgress(1f);
+            _loader?.OnProgress(0.5f);
 
-            yield return loadingHandler?.CoOutAnimation(sceneName);
+            var nextScene = SceneManager.GetSceneByName(nextSceneName);
+            var nextSceneHandler = FindHandler<ISceneHandler>(nextScene);
+            var nextSceneTransition = FindHandler<ISceneTransition>(nextScene);
 
-            ao.allowSceneActivation = true;
+            if (nextSceneHandler != null) {
+                yield return nextSceneHandler.CoInitialize(param, (progress) => {
+                    _loader?.OnProgress(0.5f + (progress * 0.49f));
+                });
+            }
 
-            currentScene = SceneManager.GetSceneByName(sceneName);
+            if (_loader != null) {
+                _loader.OnProgress(1f);
+                yield return _loader.CoOutAnimation(nextSceneName);
+            }
 
-            while (currentScene.isLoaded == false) yield return null;
+            nextSceneHandler?.OnEnter(param);
 
-            currentSceneHandler = FindHandler<SceneHandler>(currentScene);
+            if (nextSceneTransition != null) {
+                yield return nextSceneTransition.CoInAnimation(prevSceneName);
+            }
 
-            yield return currentSceneHandler?.CoInitialize(param);
-            yield return currentSceneHandler?.CoInAnimation(prevSceneName);
+            eventSystem = GetEventSystemInScene(nextScene);
 
-            eventSystem = GetEventSystemInScene(currentScene);
             if (eventSystem != null) eventSystem.enabled = true;
 
             _nowLoading = false;
@@ -103,7 +114,7 @@ namespace DarkNaku.Core {
             return null;
         }
 
-        private T FindHandler<T>(Scene scene) where T : MonoBehaviour {
+        private T FindHandler<T>(Scene scene) where T : class {
             GameObject[] goes = scene.GetRootGameObjects();
 
             for (int i = 0; i < goes.Length; i++) {

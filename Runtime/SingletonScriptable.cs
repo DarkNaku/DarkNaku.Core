@@ -40,7 +40,7 @@ namespace DarkNaku.Core {
                     }
 
                     if (Application.isPlaying) {
-                        (_instance as SingletonScriptable<T>).OnLoad();
+                        (_instance as SingletonScriptable<T>).OnLoaded();
                     }
                 }
 
@@ -51,7 +51,7 @@ namespace DarkNaku.Core {
         protected virtual void OnInstantiate() {
         }
 
-        protected virtual void OnLoad() {
+        protected virtual void OnLoaded() {
         }
     }
 }

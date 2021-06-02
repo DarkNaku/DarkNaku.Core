@@ -39,7 +39,7 @@ namespace DarkNaku.Core {
 
 #if UNITY_EDITOR
         [MenuItem("DarkNaku/GameObject Pool Settings")]
-        public static void Edit() {
+        public static void SelectGOPool() {
             Selection.activeObject = Instance;
         }
 #endif
@@ -68,7 +68,7 @@ namespace DarkNaku.Core {
             return TaskRunner.Run(Instance.CoAbandon(item, delay, onComplete));
         }
 
-        protected override void OnLoad() {
+        protected override void OnLoaded() {
             _root = new GameObject("GOPool").transform;
             DontDestroyOnLoad(_root.gameObject);
         }

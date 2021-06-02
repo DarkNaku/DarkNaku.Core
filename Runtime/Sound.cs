@@ -86,7 +86,7 @@ namespace DarkNaku.Core {
             Instance._StopBGM(clipName);
         }
 
-        protected override void OnLoad() {
+        protected override void OnLoaded() {
             _root = new GameObject("Sound Players").transform;
             DontDestroyOnLoad(_root.gameObject);
             TaskRunner.Run(CoDefendPlayAtTheSameTime());
