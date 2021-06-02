@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -14,8 +15,8 @@ namespace DarkNaku.Core {
 
         public static bool NowLoading => Instance._nowLoading;
 
-        private bool _nowLoading = false;
-        private ISceneLoader _loader = null;
+        [NonSerialized] private bool _nowLoading = false;
+        [NonSerialized] private ISceneLoader _loader = null;
 
 #if UNITY_EDITOR
         [MenuItem("DarkNaku/Director Settings")]
@@ -29,6 +30,7 @@ namespace DarkNaku.Core {
         }
 
         protected override void OnLoaded() {
+            _nowLoading = false;
 
             if (_loadingPrefab != null) {
                 var loader = Instantiate(_loadingPrefab);
